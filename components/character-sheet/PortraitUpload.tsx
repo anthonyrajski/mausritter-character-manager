@@ -92,11 +92,11 @@ export function PortraitUpload({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-semibold text-amber-900">
+      <label className="block text-sm font-semibold text-gray-900">
         Portrait
       </label>
 
-      <div className="relative aspect-square bg-amber-100 border-4 border-amber-700 rounded-lg overflow-hidden shadow-md">
+      <div className="relative aspect-square bg-gray-100 sketch-border border-gray-700 rounded-lg overflow-hidden shadow-md">
         {portraitUrl ? (
           <>
             <Image
@@ -110,7 +110,7 @@ export function PortraitUpload({
               <div className="flex gap-2">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold"
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-semibold"
                 >
                   Change
                 </button>
@@ -127,7 +127,7 @@ export function PortraitUpload({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="w-full h-full flex flex-col items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
+            className="w-full h-full flex flex-col items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
           >
             <svg
               className="w-16 h-16 mb-2"
@@ -163,7 +163,7 @@ export function PortraitUpload({
         </div>
       )}
 
-      <p className="text-xs text-amber-700">
+      <p className="text-xs text-gray-700">
         Click to upload an image (max 5MB)
       </p>
     </div>

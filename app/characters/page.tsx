@@ -38,16 +38,16 @@ export default async function CharactersPage() {
   const charactersList = characters || []
 
   return (
-    <div className="min-h-screen bg-amber-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-[#f5f0e8] rounded-lg shadow-xl border-4 border-amber-800 p-6 md:p-8 mb-6">
+        <div className="bg-[#f5f0e8] rounded-lg shadow-xl border-4 border-gray-800 p-6 md:p-8 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-amber-900 mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
                 My Characters
               </h1>
-              <p className="text-amber-700">
+              <p className="text-gray-700">
                 Manage your MausRitter adventurers
               </p>
             </div>
@@ -57,9 +57,9 @@ export default async function CharactersPage() {
 
         {/* Characters List */}
         {charactersList.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-lg border-2 border-amber-600 p-12 text-center">
+          <div className="bg-white rounded-lg shadow-lg border-2 border-gray-600 p-12 text-center">
             <div className="text-6xl mb-4">🐭</div>
-            <h2 className="text-2xl font-bold text-amber-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               No Characters Yet
             </h2>
             <p className="text-gray-700 mb-6">
@@ -73,9 +73,9 @@ export default async function CharactersPage() {
               <Link
                 key={character.id}
                 href={`/characters/${character.id}`}
-                className="bg-[#f5f0e8] rounded-lg shadow-lg border-3 border-amber-700 hover:border-amber-900 overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1"
+                className="bg-[#f5f0e8] rounded-lg shadow-lg border-3 border-gray-700 hover:border-gray-900 overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1"
               >
-                <div className="aspect-square bg-amber-100 border-b-3 border-amber-700 relative">
+                <div className="aspect-square bg-gray-100 border-b-3 border-gray-700 relative">
                   {character.portrait_url ? (
                     <Image
                       src={character.portrait_url}
@@ -91,10 +91,10 @@ export default async function CharactersPage() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="text-xl font-bold text-amber-900 mb-2 truncate">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">
                     {character.name || 'Unnamed Character'}
                   </h3>
-                  <div className="flex items-center justify-between text-sm text-amber-700">
+                  <div className="flex items-center justify-between text-sm text-gray-700">
                     <span>Level {character.level}</span>
                     <span>
                       {new Date(character.updated_at).toLocaleDateString()}

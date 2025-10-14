@@ -62,7 +62,7 @@ export function NewCharacterButton({ userId }: NewCharacterButtonProps) {
     <button
       onClick={handleCreateCharacter}
       disabled={creating}
-      className="px-6 py-3 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-lg font-semibold shadow-lg transition-colors flex items-center gap-2"
+      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-lg font-semibold shadow-lg transition-colors flex items-center gap-2"
     >
       {creating ? (
         <>

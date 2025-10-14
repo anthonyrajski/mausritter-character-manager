@@ -30,11 +30,13 @@ export interface Character {
 export interface InventoryItem {
   id: string
   name: string
-  description?: string
+  description: string
+  slots: 1 | 2 // Number of inventory slots the item occupies
+  usageDots: 0 | 1 | 2 | 3 // Number of usage dots (0-3)
+  currentUsage: 0 | 1 | 2 | 3 // Current usage state
+  position: string // Which slot(s) the item occupies (e.g., 'mainPaw', 'backpack-0', 'backpack-1')
   quantity?: number
   equipped?: boolean
-  slot?: string
-  [key: string]: string | number | boolean | undefined
 }
 
 export interface Profile {

@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { InventoryItem } from '@/lib/types'
+import { ItemCard } from './ItemCard'
+import { SAMPLE_ITEMS, createItemFromTemplate } from '@/lib/sampleItems'
 
 interface InventoryGridProps {
   inventory: InventoryItem[]
@@ -10,279 +12,389 @@ interface InventoryGridProps {
 
 type SlotType = 'mainPaw' | 'offPaw' | 'body1' | 'body2' | 'backpack'
 
-interface InventorySlot {
+interface SlotPosition {
   type: SlotType
-  label: string
-  number?: number
+  index?: number // For backpack slots
+  canFitTwoSlot: boolean // Can this slot accommodate a 2-slot item?
 }
 
-const SLOTS: InventorySlot[] = [
-  { type: 'mainPaw', label: 'Main Paw' },
-  { type: 'offPaw', label: 'Off Paw' },
-  { type: 'body1', label: 'Body', number: 1 },
-  { type: 'body2', label: 'Body', number: 2 },
-  { type: 'backpack', label: 'Backpack', number: 1 },
-  { type: 'backpack', label: 'Backpack', number: 2 },
-  { type: 'backpack', label: 'Backpack', number: 3 },
-  { type: 'backpack', label: 'Backpack', number: 4 },
-  { type: 'backpack', label: 'Backpack', number: 5 },
-  { type: 'backpack', label: 'Backpack', number: 6 },
+const CARRIED_SLOTS: SlotPosition[] = [
+  { type: 'mainPaw', canFitTwoSlot: true }, // Can extend down to offPaw
+  { type: 'body1', canFitTwoSlot: true }, // Can extend down to body2
+  { type: 'offPaw', canFitTwoSlot: false }, // Bottom row - can't extend down
+  { type: 'body2', canFitTwoSlot: false }, // Bottom row - can't extend down
 ]
 
+const BACKPACK_SLOTS: SlotPosition[] = Array.from({ length: 6 }, (_, i) => ({
+  type: 'backpack',
+  index: i,
+  canFitTwoSlot: i < 3, // Can fit 2-slot if in top row (extends down to bottom row)
+}))
+
 export function InventoryGrid({
-  inventory,
+  inventory = [],
   onInventoryChange,
 }: InventoryGridProps) {
-  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null)
+  const draggedItemRef = useRef<InventoryItem | null>(null)
+  const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
+  const [showItemPicker, setShowItemPicker] = useState<string | null>(null)
 
-  // Get item for a specific slot
-  const getItemForSlot = (slotIndex: number): InventoryItem | null => {
-    return inventory.find((item) => item.slot === `slot-${slotIndex}`) || null
+  // Get slot identifier
+  const getSlotId = (slot: SlotPosition): string => {
+    return slot.type === 'backpack' ? `backpack-${slot.index}` : slot.type
   }
 
-  // Update item in slot
-  const updateSlot = (slotIndex: number, itemData: Partial<InventoryItem>) => {
-    const existingItemIndex = inventory.findIndex(
-      (item) => item.slot === `slot-${slotIndex}`
-    )
+  // Check if a slot is occupied
+  const getItemInSlot = (slotId: string): InventoryItem | null => {
+    return inventory.find((item) => item.position === slotId) || null
+  }
 
-    let newInventory: InventoryItem[]
+  // Check if a 2-slot item can fit starting at this slot
+  const canFitTwoSlotItem = (slotId: string, slots: SlotPosition[]): boolean => {
+    const slotIndex = slots.findIndex((s) => getSlotId(s) === slotId)
+    if (slotIndex === -1) return false
 
-    if (existingItemIndex >= 0) {
-      // Update existing item
-      newInventory = [...inventory]
-      newInventory[existingItemIndex] = {
-        ...newInventory[existingItemIndex],
-        ...itemData,
-      }
-    } else {
-      // Add new item
-      const newItem: InventoryItem = {
-        id: `item-${Date.now()}`,
-        name: '',
-        slot: `slot-${slotIndex}`,
-        ...itemData,
-      }
-      newInventory = [...inventory, newItem]
+    const slot = slots[slotIndex]
+    if (!slot.canFitTwoSlot) return false
+
+    // Check if slot below is available
+    // For carried grid: next slot is +2 (skip across row)
+    // For backpack grid: next slot is +3 (skip across 3-wide row)
+    const isBackpack = slotId.startsWith('backpack')
+    const nextSlotIndex = slotIndex + (isBackpack ? 3 : 2)
+    const nextSlot = slots[nextSlotIndex]
+    if (!nextSlot) return false
+
+    const nextSlotId = getSlotId(nextSlot)
+    const nextSlotOccupied = getItemInSlot(nextSlotId)
+
+    return !nextSlotOccupied
+  }
+
+  // Check if item occupies this slot (for 2-slot items spanning multiple slots)
+  const isSlotOccupiedByTwoSlotItem = (slotId: string): InventoryItem | null => {
+    // Determine which grid we're in
+    const isBackpack = slotId.startsWith('backpack')
+    const slots = isBackpack ? BACKPACK_SLOTS : CARRIED_SLOTS
+
+    const slotIndex = slots.findIndex((s) => getSlotId(s) === slotId)
+    if (slotIndex === -1) return null
+
+    // Check slot above in the same grid
+    // For carried grid: previous slot is -2 (skip back across row)
+    // For backpack grid: previous slot is -3 (skip back across 3-wide row)
+    const prevSlotIndex = slotIndex - (isBackpack ? 3 : 2)
+    const prevSlot = slots[prevSlotIndex]
+    if (!prevSlot) return null
+
+    const prevSlotId = getSlotId(prevSlot)
+    const prevItem = getItemInSlot(prevSlotId)
+
+    if (prevItem && prevItem.slots === 2) {
+      return prevItem
     }
 
+    return null
+  }
+
+  const handleDragStart = (item: InventoryItem) => {
+    draggedItemRef.current = item
+  }
+
+  const handleDragEnd = () => {
+    draggedItemRef.current = null
+    setDragOverSlot(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent, slotId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Prevent default drag behavior
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverSlot(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, targetSlotId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverSlot(null)
+
+    let item: InventoryItem
+
+    // Check if dragging from inventory or from item picker
+    try {
+      const data = e.dataTransfer.getData('application/json')
+      item = JSON.parse(data)
+    } catch {
+      return
+    }
+
+    // Don't allow dropping on occupied slots (unless it's the same item moving)
+    const targetItem = getItemInSlot(targetSlotId)
+    const spansSecondSlot = isSlotOccupiedByTwoSlotItem(targetSlotId)
+
+    if (targetItem && targetItem.id !== item.id) return
+    if (spansSecondSlot && spansSecondSlot.id !== item.id) return
+
+    // Check if 2-slot item can fit
+    if (item.slots === 2) {
+      const slots = targetSlotId.startsWith('backpack')
+        ? BACKPACK_SLOTS
+        : CARRIED_SLOTS
+      if (!canFitTwoSlotItem(targetSlotId, slots)) return
+    }
+
+    // Remove item from old position
+    const newInventory = inventory.filter((i) => i.id !== item.id)
+
+    // Add item to new position
+    const updatedItem = { ...item, position: targetSlotId }
+    newInventory.push(updatedItem)
+
+    // Update inventory
+    onInventoryChange(newInventory)
+    draggedItemRef.current = null
+  }
+
+  const handleAddItem = (template: typeof SAMPLE_ITEMS[0], slotId: string) => {
+    const newItem = createItemFromTemplate(template, slotId)
+
+    // Check if slot is available
+    const targetItem = getItemInSlot(slotId)
+    if (targetItem) {
+      console.log('Slot already occupied:', slotId)
+      return
+    }
+
+    // Check if 2-slot item can fit
+    if (newItem.slots === 2) {
+      const slots = slotId.startsWith('backpack') ? BACKPACK_SLOTS : CARRIED_SLOTS
+      const canFit = canFitTwoSlotItem(slotId, slots)
+      console.log('2-slot item fit check:', { slotId, canFit })
+      if (!canFit) {
+        console.log('Cannot fit 2-slot item at:', slotId)
+        return
+      }
+    }
+
+    console.log('Adding item:', newItem)
+    onInventoryChange([...inventory, newItem])
+    setShowItemPicker(null)
+  }
+
+  const handleDeleteItem = (itemId: string) => {
+    onInventoryChange(inventory.filter((i) => i.id !== itemId))
+  }
+
+  const handleUsageDotClick = (itemId: string, newUsage: number) => {
+    const newInventory = inventory.map((item) =>
+      item.id === itemId ? { ...item, currentUsage: newUsage as 0 | 1 | 2 | 3 } : item
+    )
     onInventoryChange(newInventory)
   }
 
-  // Remove item from slot
-  const clearSlot = (slotIndex: number) => {
-    const newInventory = inventory.filter(
-      (item) => item.slot !== `slot-${slotIndex}`
+  const renderSlot = (slot: SlotPosition, label?: string, labelSize: 'small' | 'large' = 'small') => {
+    const slotId = getSlotId(slot)
+    const item = getItemInSlot(slotId)
+    const spansHere = isSlotOccupiedByTwoSlotItem(slotId)
+    const isDragOver = dragOverSlot === slotId
+    const draggedItem = draggedItemRef.current
+    const canDrop =
+      draggedItem &&
+      (!item || item.id === draggedItem.id) &&
+      (!spansHere || spansHere.id === draggedItem.id) &&
+      (draggedItem.slots === 1 ||
+        canFitTwoSlotItem(
+          slotId,
+          slotId.startsWith('backpack') ? BACKPACK_SLOTS : CARRIED_SLOTS
+        ))
+
+    return (
+      <div
+        key={slotId}
+        className="relative w-full h-full"
+        onDragOver={(e) => handleDragOver(e, slotId)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, slotId)}
+      >
+        {/* Slot label as watermark */}
+        {label && !item && !spansHere && (
+          <div
+            className={`absolute top-3 left-3 text-gray-700 opacity-30 pointer-events-none z-0 ${
+              labelSize === 'large' ? 'text-5xl' : 'text-2xl leading-tight'
+            }`}
+            style={{ fontFamily: 'var(--font-brokenscript), serif', fontWeight: 'bold' }}
+          >
+            {label}
+          </div>
+        )}
+
+        {/* Item container - full height */}
+        <div className="relative w-full h-full">
+          {/* Drop zone indicator */}
+          {isDragOver && canDrop && (
+            <div className="absolute inset-0 bg-green-300 bg-opacity-30 border-2 border-green-500 border-dashed rounded z-10 pointer-events-none" />
+          )}
+
+          {isDragOver && !canDrop && draggedItem && (
+            <div className="absolute inset-0 bg-red-300 bg-opacity-30 border-2 border-red-500 border-dashed rounded z-10 pointer-events-none" />
+          )}
+
+          {/* Item or empty slot */}
+          {item && item.position === slotId ? (
+            item.slots === 2 ? (
+              // 2-slot item: absolutely positioned to span two cells vertically
+              <div className="absolute inset-0 top-0 bottom-[-101%] z-20">
+                <ItemCard
+                  item={item}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDelete={() => handleDeleteItem(item.id)}
+                  onUsageDotClick={(newUsage) => handleUsageDotClick(item.id, newUsage)}
+                  isDragging={draggedItemRef.current?.id === item.id}
+                />
+              </div>
+            ) : (
+              // 1-slot item: normal height
+              <div className="h-full">
+                <ItemCard
+                  item={item}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDelete={() => handleDeleteItem(item.id)}
+                  onUsageDotClick={(newUsage) => handleUsageDotClick(item.id, newUsage)}
+                  isDragging={draggedItemRef.current?.id === item.id}
+                />
+              </div>
+            )
+          ) : spansHere ? (
+            // This slot is occupied by a 2-slot item from previous slot
+            <div className="h-full" />
+          ) : (
+            // Empty slot - show add button
+            <button
+              onClick={() => setShowItemPicker(slotId)}
+              className="w-full h-full border-2 border-dashed border-gray-400 rounded hover:border-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center text-gray-600 text-xs font-semibold"
+            >
+              + Add Item
+            </button>
+          )}
+        </div>
+
+        {/* Item picker modal */}
+        {showItemPicker === slotId && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowItemPicker(null)}
+            />
+            <div className="absolute top-0 left-0 right-0 bg-white border-2 border-black rounded-lg shadow-2xl z-50 max-h-[400px] overflow-y-auto p-4">
+              <h4 className="font-bold mb-3 text-sm">Select an item:</h4>
+              <div className="grid grid-cols-1 gap-2">
+                {SAMPLE_ITEMS.map((template, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAddItem(template, slotId)}
+                    className="text-left p-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="font-semibold text-sm">
+                      {template.name} {template.slots === 2 && '(2 slots)'}
+                    </div>
+                    <div className="text-xs text-gray-600">{template.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     )
-    onInventoryChange(newInventory)
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-2xl font-bold text-amber-900 border-b-2 border-amber-700 pb-2">
+    <div className="space-y-4" style={{ contain: 'layout style paint' }}>
+      {/* SVG Filter for hand-drawn effect */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <filter id="sketch-filter">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.75"
+              numOctaves="3"
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale="2"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
+      <h3
+        className="text-2xl text-gray-900 border-b-2 border-gray-700 pb-2"
+        style={{ fontFamily: 'var(--font-brokenscript), serif', fontWeight: 'bold' }}
+      >
         Inventory
       </h3>
 
-      {/* Main Paw & Off Paw */}
-      <div className="grid grid-cols-2 gap-4">
-        {SLOTS.slice(0, 2).map((slot, index) => {
-          const item = getItemForSlot(index)
-          const isEditing = editingSlotIndex === index
-
-          return (
-            <InventorySlotComponent
-              key={index}
-              slot={slot}
-              item={item}
-              isEditing={isEditing}
-              onEdit={() => setEditingSlotIndex(index)}
-              onSave={(data) => {
-                updateSlot(index, data)
-                setEditingSlotIndex(null)
-              }}
-              onClear={() => clearSlot(index)}
-              onCancel={() => setEditingSlotIndex(null)}
-            />
-          )
-        })}
-      </div>
-
-      {/* Body Slots */}
-      <div>
-        <h4 className="text-lg font-semibold text-amber-900 mb-2">Body</h4>
-        <div className="grid grid-cols-2 gap-4">
-          {SLOTS.slice(2, 4).map((slot, idx) => {
-            const index = idx + 2
-            const item = getItemForSlot(index)
-            const isEditing = editingSlotIndex === index
-
-            return (
-              <InventorySlotComponent
-                key={index}
-                slot={slot}
-                item={item}
-                isEditing={isEditing}
-                onEdit={() => setEditingSlotIndex(index)}
-                onSave={(data) => {
-                  updateSlot(index, data)
-                  setEditingSlotIndex(null)
-                }}
-                onClear={() => clearSlot(index)}
-                onCancel={() => setEditingSlotIndex(null)}
-              />
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Backpack */}
-      <div>
-        <h4 className="text-lg font-semibold text-amber-900 mb-2">Backpack</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {SLOTS.slice(4).map((slot, idx) => {
-            const index = idx + 4
-            const item = getItemForSlot(index)
-            const isEditing = editingSlotIndex === index
-
-            return (
-              <InventorySlotComponent
-                key={index}
-                slot={slot}
-                item={item}
-                isEditing={isEditing}
-                onEdit={() => setEditingSlotIndex(index)}
-                onSave={(data) => {
-                  updateSlot(index, data)
-                  setEditingSlotIndex(null)
-                }}
-                onClear={() => clearSlot(index)}
-                onCancel={() => setEditingSlotIndex(null)}
-              />
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface InventorySlotComponentProps {
-  slot: InventorySlot
-  item: InventoryItem | null
-  isEditing: boolean
-  onEdit: () => void
-  onSave: (data: Partial<InventoryItem>) => void
-  onClear: () => void
-  onCancel: () => void
-}
-
-function InventorySlotComponent({
-  slot,
-  item,
-  isEditing,
-  onEdit,
-  onSave,
-  onClear,
-  onCancel,
-}: InventorySlotComponentProps) {
-  const [editName, setEditName] = useState(item?.name || '')
-  const [editDescription, setEditDescription] = useState(
-    item?.description || ''
-  )
-
-  const handleSave = () => {
-    if (editName.trim()) {
-      onSave({
-        name: editName.trim(),
-        description: editDescription.trim() || undefined,
-      })
-    } else {
-      onCancel()
-    }
-  }
-
-  const handleClear = () => {
-    onClear()
-    setEditName('')
-    setEditDescription('')
-  }
-
-  return (
-    <div className="bg-amber-100 border-2 border-amber-700 rounded-lg p-3 min-h-[120px] flex flex-col">
-      <div className="text-xs font-semibold text-amber-900 mb-2">
-        {slot.label}
-        {slot.number && ` ${slot.number}`}
-      </div>
-
-      {isEditing ? (
-        <div className="flex-1 flex flex-col gap-2">
-          <input
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            placeholder="Item name"
-            className="px-2 py-1 text-sm bg-white border border-amber-600 rounded focus:outline-none focus:ring-1 focus:ring-amber-500"
-            autoFocus
-          />
-          <textarea
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            placeholder="Description (optional)"
-            className="px-2 py-1 text-sm bg-white border border-amber-600 rounded focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none flex-1"
-            rows={2}
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              className="flex-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
-            >
-              Save
-            </button>
-            <button
-              onClick={onCancel}
-              className="flex-1 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white text-xs rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : item ? (
-        <div className="flex-1 flex flex-col">
-          <div className="font-semibold text-amber-900 text-sm mb-1">
-            {item.name}
-          </div>
-          {item.description && (
-            <div className="text-xs text-amber-800 mb-2 flex-1">
-              {item.description}
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4">
+        {/* Left: Carried/Worn items (2x2 grid) */}
+        <div className="bg-gray-100 sketch-border border-gray-700 rounded-lg p-0 relative overflow-visible aspect-square">
+          <div className="grid grid-cols-2 grid-rows-2 h-full w-full">
+            {/* Main Paw - Top Left */}
+            <div className="border-r border-b border-gray-600 relative">
+              {renderSlot(CARRIED_SLOTS[0], 'main paw')}
             </div>
-          )}
-          <div className="flex gap-2 mt-auto">
-            <button
-              onClick={onEdit}
-              className="flex-1 px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
-            >
-              Clear
-            </button>
+
+            {/* Body 1 - Top Right */}
+            <div className="border-b border-gray-600 relative">
+              {renderSlot(CARRIED_SLOTS[1], 'body')}
+            </div>
+
+            {/* Off Paw - Bottom Left */}
+            <div className="border-r border-gray-600 relative">
+              {renderSlot(CARRIED_SLOTS[2], 'off paw')}
+            </div>
+
+            {/* Body 2 - Bottom Right */}
+            <div className="relative">{renderSlot(CARRIED_SLOTS[3], 'body')}</div>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => {
-            setEditName('')
-            setEditDescription('')
-            onEdit()
-          }}
-          className="flex-1 border-2 border-dashed border-amber-400 rounded hover:border-amber-600 hover:bg-amber-50 transition-colors flex items-center justify-center text-amber-600 text-sm"
-        >
-          + Add Item
-        </button>
-      )}
+
+        {/* Right: Backpack (3x2 grid) */}
+        <div className="bg-gray-100 sketch-border border-gray-700 rounded-lg p-0 relative overflow-visible aspect-[3/2]">
+          <div className="grid grid-cols-3 grid-rows-2 h-full w-full">
+            {BACKPACK_SLOTS.map((slot, idx) => {
+              const slotNum = idx + 1
+              const isRightEdge = slotNum % 3 === 0
+              const isBottomRow = slotNum > 3
+
+              return (
+                <div
+                  key={getSlotId(slot)}
+                  className={`relative ${!isRightEdge ? 'border-r' : ''} ${
+                    !isBottomRow ? 'border-b' : ''
+                  } border-gray-600`}
+                >
+                  {renderSlot(slot, slotNum.toString(), 'large')}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

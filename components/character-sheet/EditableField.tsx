@@ -49,7 +49,7 @@ export function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-semibold text-amber-900">
+      <label className="block text-sm font-semibold text-gray-900">
         {label}
       </label>
       {isEditing ? (
@@ -60,7 +60,7 @@ export function EditableField({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
-            className={`w-full px-3 py-2 bg-white border-2 border-amber-600 rounded focus:outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 ${className}`}
+            className={`w-full px-3 py-2 bg-white border-2 border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-gray-900 ${className}`}
             rows={3}
           />
         ) : (
@@ -71,7 +71,7 @@ export function EditableField({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
-            className={`w-full px-3 py-2 bg-white border-2 border-amber-600 rounded focus:outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 ${className}`}
+            className={`w-full px-3 py-2 bg-white border-2 border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-gray-900 ${className}`}
           />
         )
       ) : (
@@ -80,8 +80,8 @@ export function EditableField({
             setEditValue(value)
             setIsEditing(true)
           }}
-          className={`w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded cursor-pointer hover:bg-amber-100 hover:border-amber-400 transition-colors text-amber-900 ${className} ${
-            !value ? 'text-amber-600 italic' : ''
+          className={`w-full px-3 py-2 bg-gray-50 sketch-border border-gray-300 rounded cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors text-gray-900 ${className} ${
+            !value ? 'text-gray-600 italic' : ''
           }`}
         >
           {value || placeholder}
