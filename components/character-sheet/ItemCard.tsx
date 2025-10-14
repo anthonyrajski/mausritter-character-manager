@@ -25,18 +25,53 @@ export function ItemCard({
   const [showMenu, setShowMenu] = useState(false)
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.stopPropagation()
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('application/json', JSON.stringify(item))
 
-    // Just use the element itself - no custom drag image
-    // This prevents all layout shifts and bouncing
+    // Create a custom drag image with rotation and shadow
+    const sourceElement = e.currentTarget as HTMLElement
+    const rect = sourceElement.getBoundingClientRect()
+
+    // Create wrapper container for the rotated drag image
+    const wrapper = document.createElement('div')
+    wrapper.style.position = 'absolute'
+    wrapper.style.top = '-10000px'
+    wrapper.style.left = '-10000px'
+    wrapper.style.width = `${rect.width * 1.5}px` // Extra space for rotation
+    wrapper.style.height = `${rect.height * 1.5}px`
+    wrapper.style.pointerEvents = 'none'
+    wrapper.style.opacity = '1'
+
+    // Clone and style the card
+    const dragImage = sourceElement.cloneNode(true) as HTMLElement
+    dragImage.style.position = 'absolute'
+    dragImage.style.top = '50%'
+    dragImage.style.left = '50%'
+    dragImage.style.width = `${rect.width}px`
+    dragImage.style.height = `${rect.height}px`
+    dragImage.style.transform = 'translate(-50%, -50%) rotate(-6deg)'
+    dragImage.style.transformOrigin = 'center center'
+    dragImage.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+    dragImage.style.setProperty('opacity', '1', 'important')
+    dragImage.style.filter = 'none'
+    dragImage.style.WebkitFilter = 'none'
+
+    wrapper.appendChild(dragImage)
+    document.body.appendChild(wrapper)
+
+    e.dataTransfer.setDragImage(wrapper, (rect.width * 1.5) / 2, (rect.height * 1.5) / 2)
+
+    // Remove the temporary drag image after it's been captured
+    setTimeout(() => {
+      if (document.body.contains(wrapper)) {
+        document.body.removeChild(wrapper)
+      }
+    }, 0)
+
     onDragStart?.(item)
   }
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleDragEnd = () => {
     onDragEnd?.()
   }
 
@@ -55,15 +90,11 @@ export function ItemCard({
       className={`
         relative bg-white border-2 border-black rounded
         ${item.slots === 2 ? 'col-span-2' : ''}
-        ${isDragging ? 'opacity-30 rotate-[-6deg] shadow-2xl' : ''}
-        ${!isPreview ? 'cursor-grab active:cursor-grabbing hover:shadow-lg transition-shadow' : ''}
+        ${isDragging ? 'opacity-0' : ''}
+        ${!isPreview ? 'cursor-grab active:cursor-grabbing hover:shadow-lg transition-opacity duration-150' : ''}
         ${isPreview ? 'pointer-events-none' : ''}
         w-full h-full flex flex-col min-h-[140px] max-h-full
       `}
-      style={{
-        willChange: isDragging ? 'opacity, transform' : 'auto',
-        filter: isDragging ? 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4))' : 'none'
-      }}
       onContextMenu={(e) => {
         if (!isPreview) {
           e.preventDefault()

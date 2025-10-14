@@ -108,22 +108,14 @@ export function InventoryGrid({
 
   const handleDragOver = (e: React.DragEvent, slotId: string) => {
     e.preventDefault()
-    e.stopPropagation()
-    // Prevent default drag behavior
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'move'
     }
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragOverSlot(null)
+    setDragOverSlot(slotId)
   }
 
   const handleDrop = (e: React.DragEvent, targetSlotId: string) => {
     e.preventDefault()
-    e.stopPropagation()
     setDragOverSlot(null)
 
     let item: InventoryItem
@@ -206,6 +198,8 @@ export function InventoryGrid({
     const spansHere = isSlotOccupiedByTwoSlotItem(slotId)
     const isDragOver = dragOverSlot === slotId
     const draggedItem = draggedItemRef.current
+
+    // Check if the dragged item can be dropped in this slot
     const canDrop =
       draggedItem &&
       (!item || item.id === draggedItem.id) &&
@@ -219,9 +213,8 @@ export function InventoryGrid({
     return (
       <div
         key={slotId}
-        className="relative w-full h-full"
+        className="relative w-full h-full overflow-visible"
         onDragOver={(e) => handleDragOver(e, slotId)}
-        onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, slotId)}
       >
         {/* Slot label as watermark */}
@@ -237,14 +230,14 @@ export function InventoryGrid({
         )}
 
         {/* Item container - full height */}
-        <div className="relative w-full h-full">
-          {/* Drop zone indicator */}
+        <div className="relative w-full h-full overflow-visible">
+          {/* Drop zone indicator - green if can drop, red if cannot */}
           {isDragOver && canDrop && (
-            <div className="absolute inset-0 bg-green-300 bg-opacity-30 border-2 border-green-500 border-dashed rounded z-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-green-300 bg-opacity-30 border-2 border-green-500 border-dashed rounded z-10 pointer-events-none transition-all duration-150" />
           )}
 
           {isDragOver && !canDrop && draggedItem && (
-            <div className="absolute inset-0 bg-red-300 bg-opacity-30 border-2 border-red-500 border-dashed rounded z-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-red-300 bg-opacity-30 border-2 border-red-500 border-dashed rounded z-10 pointer-events-none transition-all duration-150" />
           )}
 
           {/* Item or empty slot */}
@@ -352,30 +345,30 @@ export function InventoryGrid({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4">
         {/* Left: Carried/Worn items (2x2 grid) */}
         <div className="bg-gray-100 sketch-border border-gray-700 rounded-lg p-0 relative overflow-visible aspect-square">
-          <div className="grid grid-cols-2 grid-rows-2 h-full w-full">
+          <div className="grid grid-cols-2 grid-rows-2 h-full w-full overflow-visible">
             {/* Main Paw - Top Left */}
-            <div className="border-r border-b border-gray-600 relative">
+            <div className="border-r border-b border-gray-600 relative overflow-visible">
               {renderSlot(CARRIED_SLOTS[0], 'main paw')}
             </div>
 
             {/* Body 1 - Top Right */}
-            <div className="border-b border-gray-600 relative">
+            <div className="border-b border-gray-600 relative overflow-visible">
               {renderSlot(CARRIED_SLOTS[1], 'body')}
             </div>
 
             {/* Off Paw - Bottom Left */}
-            <div className="border-r border-gray-600 relative">
+            <div className="border-r border-gray-600 relative overflow-visible">
               {renderSlot(CARRIED_SLOTS[2], 'off paw')}
             </div>
 
             {/* Body 2 - Bottom Right */}
-            <div className="relative">{renderSlot(CARRIED_SLOTS[3], 'body')}</div>
+            <div className="relative overflow-visible">{renderSlot(CARRIED_SLOTS[3], 'body')}</div>
           </div>
         </div>
 
         {/* Right: Backpack (3x2 grid) */}
         <div className="bg-gray-100 sketch-border border-gray-700 rounded-lg p-0 relative overflow-visible aspect-[3/2]">
-          <div className="grid grid-cols-3 grid-rows-2 h-full w-full">
+          <div className="grid grid-cols-3 grid-rows-2 h-full w-full overflow-visible">
             {BACKPACK_SLOTS.map((slot, idx) => {
               const slotNum = idx + 1
               const isRightEdge = slotNum % 3 === 0
@@ -384,7 +377,7 @@ export function InventoryGrid({
               return (
                 <div
                   key={getSlotId(slot)}
-                  className={`relative ${!isRightEdge ? 'border-r' : ''} ${
+                  className={`relative overflow-visible ${!isRightEdge ? 'border-r' : ''} ${
                     !isBottomRow ? 'border-b' : ''
                   } border-gray-600`}
                 >
