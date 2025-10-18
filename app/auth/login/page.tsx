@@ -38,7 +38,6 @@ export default function LoginPage() {
         router.refresh()
       }
     } catch (err) {
-      console.error('Login error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Invalid email or password'
       setError(errorMessage)
     } finally {

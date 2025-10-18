@@ -161,7 +161,6 @@ export function InventoryGrid({
     // Check if slot is available
     const targetItem = getItemInSlot(slotId)
     if (targetItem) {
-      console.log('Slot already occupied:', slotId)
       return
     }
 
@@ -169,14 +168,11 @@ export function InventoryGrid({
     if (newItem.slots === 2) {
       const slots = slotId.startsWith('backpack') ? BACKPACK_SLOTS : CARRIED_SLOTS
       const canFit = canFitTwoSlotItem(slotId, slots)
-      console.log('2-slot item fit check:', { slotId, canFit })
       if (!canFit) {
-        console.log('Cannot fit 2-slot item at:', slotId)
         return
       }
     }
 
-    console.log('Adding item:', newItem)
     onInventoryChange([...inventory, newItem])
     setShowItemPicker(null)
   }

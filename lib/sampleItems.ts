@@ -126,7 +126,7 @@ export function createItemFromTemplate(
 ): InventoryItem {
   return {
     ...template,
-    id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
     position,
     currentUsage: template.usageDots,
   }

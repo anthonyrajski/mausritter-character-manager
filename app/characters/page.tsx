@@ -31,10 +31,6 @@ export default async function CharactersPage() {
     .order('updated_at', { ascending: false })
     .returns<CharacterListItem[]>()
 
-  if (charactersError) {
-    console.error('Error fetching characters:', charactersError)
-  }
-
   const charactersList = characters || []
 
   return (

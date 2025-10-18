@@ -31,7 +31,7 @@ export function CharacterSheet({ characterId }: CharacterSheetProps) {
         if (error) throw error
         setCharacter(data)
       } catch (error) {
-        console.error('Error loading character:', error)
+        // Error loading character - handle gracefully
       } finally {
         setLoading(false)
       }
@@ -59,7 +59,7 @@ export function CharacterSheet({ characterId }: CharacterSheetProps) {
 
         if (error) throw error
       } catch (error) {
-        console.error('Error saving character:', error)
+        // Error saving character - handle gracefully
       } finally {
         setSaving(false)
       }

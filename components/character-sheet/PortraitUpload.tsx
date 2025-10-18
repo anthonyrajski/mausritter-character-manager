@@ -70,7 +70,6 @@ export function PortraitUpload({
 
       onUploadComplete(publicUrl)
     } catch (err) {
-      console.error('Error uploading portrait:', err)
       setError('Failed to upload image. Please try again.')
     } finally {
       setUploading(false)
@@ -85,7 +84,6 @@ export function PortraitUpload({
       await supabase.storage.from('character-portraits').remove([path])
       onUploadComplete('')
     } catch (err) {
-      console.error('Error removing portrait:', err)
       setError('Failed to remove portrait')
     }
   }
