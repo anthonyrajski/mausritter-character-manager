@@ -88,7 +88,7 @@ export function ItemCard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={`
-        relative bg-white border-2 border-black rounded
+        relative bg-white border-2 border-black rounded item-card-border
         ${item.slots === 2 ? 'col-span-2' : ''}
         ${isDragging ? 'opacity-0' : ''}
         ${!isPreview ? 'cursor-grab active:cursor-grabbing hover:shadow-lg transition-opacity duration-150' : ''}
@@ -135,10 +135,16 @@ export function ItemCard({
       {showMenu && !isPreview && (
         <>
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute top-8 right-0 bg-white border-2 border-black rounded shadow-lg z-50 min-w-[120px]">
+          <div className="fixed bg-white border-2 border-black rounded shadow-lg z-[9999] min-w-[120px]"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
             <button
               onClick={() => {
                 onDelete?.()

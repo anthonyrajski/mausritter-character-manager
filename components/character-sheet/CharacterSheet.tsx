@@ -177,44 +177,63 @@ export function CharacterSheet({ characterId }: CharacterSheetProps) {
             </div>
           </div>
 
-          {/* Stats Section */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatBlock
-              label="STR"
-              current={character.strength_current}
-              max={character.strength_max}
-              onAdjustCurrent={(delta) =>
-                adjustStat('strength_current', delta, character.strength_max)
-              }
-              onAdjustMax={(delta) => adjustStat('strength_max', delta)}
-            />
-            <StatBlock
-              label="DEX"
-              current={character.dexterity_current}
-              max={character.dexterity_max}
-              onAdjustCurrent={(delta) =>
-                adjustStat('dexterity_current', delta, character.dexterity_max)
-              }
-              onAdjustMax={(delta) => adjustStat('dexterity_max', delta)}
-            />
-            <StatBlock
-              label="WIL"
-              current={character.will_current}
-              max={character.will_max}
-              onAdjustCurrent={(delta) =>
-                adjustStat('will_current', delta, character.will_max)
-              }
-              onAdjustMax={(delta) => adjustStat('will_max', delta)}
-            />
-            <StatBlock
-              label="HP"
-              current={character.hp_current}
-              max={character.hp_max}
-              onAdjustCurrent={(delta) =>
-                adjustStat('hp_current', delta, character.hp_max)
-              }
-              onAdjustMax={(delta) => adjustStat('hp_max', delta)}
-            />
+          {/* Stats Section - Paper taped on background */}
+          <div className="relative mb-8">
+            {/* Tape pieces at all four corners - diagonal */}
+            {/* Top left corner */}
+            <div className="absolute top-6 -left-8 w-20 h-7 bg-[#a8d5e2] opacity-70 transform -rotate-45 origin-top-left shadow-sm z-10"
+                 style={{ clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)' }}></div>
+            {/* Top right corner */}
+            <div className="absolute top-6 -right-8 w-20 h-7 bg-[#a8d5e2] opacity-70 transform rotate-45 origin-top-right shadow-sm z-10"
+                 style={{ clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)' }}></div>
+            {/* Bottom left corner */}
+            <div className="absolute bottom-6 -left-8 w-20 h-7 bg-[#a8d5e2] opacity-70 transform rotate-45 origin-bottom-left shadow-sm z-10"
+                 style={{ clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)' }}></div>
+            {/* Bottom right corner */}
+            <div className="absolute bottom-6 -right-8 w-20 h-7 bg-[#a8d5e2] opacity-70 transform -rotate-45 origin-bottom-right shadow-sm z-10"
+                 style={{ clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)' }}></div>
+
+            {/* Paper container */}
+            <div className="relative bg-white sketch-border border-gray-800 rounded-sm p-6 shadow-md transform rotate-[-0.3deg]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatBlock
+                  label="STR"
+                  current={character.strength_current}
+                  max={character.strength_max}
+                  onAdjustCurrent={(delta) =>
+                    adjustStat('strength_current', delta, character.strength_max)
+                  }
+                  onAdjustMax={(delta) => adjustStat('strength_max', delta)}
+                />
+                <StatBlock
+                  label="DEX"
+                  current={character.dexterity_current}
+                  max={character.dexterity_max}
+                  onAdjustCurrent={(delta) =>
+                    adjustStat('dexterity_current', delta, character.dexterity_max)
+                  }
+                  onAdjustMax={(delta) => adjustStat('dexterity_max', delta)}
+                />
+                <StatBlock
+                  label="WIL"
+                  current={character.will_current}
+                  max={character.will_max}
+                  onAdjustCurrent={(delta) =>
+                    adjustStat('will_current', delta, character.will_max)
+                  }
+                  onAdjustMax={(delta) => adjustStat('will_max', delta)}
+                />
+                <StatBlock
+                  label="HP"
+                  current={character.hp_current}
+                  max={character.hp_max}
+                  onAdjustCurrent={(delta) =>
+                    adjustStat('hp_current', delta, character.hp_max)
+                  }
+                  onAdjustMax={(delta) => adjustStat('hp_max', delta)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Level, Pips, Grit */}
